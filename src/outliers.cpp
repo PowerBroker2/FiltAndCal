@@ -1,7 +1,10 @@
+#include "Arduino.h"
+#include "FiltAndCal.h"
 #include "eigen.h"
+#include <Eigen/Cholesky>
 #include <Eigen/LU>
 #include <Eigen/Geometry>
-#include <Eigen/Cholesky>
+#include <Eigen/Eigenvalues>
 #include <Eigen/Dense>
 
 
@@ -351,32 +354,37 @@ double single_mahalanobis_dist2(const Vector2d& pt, const Vector2d& mean, const 
 
 
 // https://codereview.stackexchange.com/q/9554/218320
+// https://stackoverflow.com/a/31919473/9860973 ******************************
+// UNSUPPORTED - DO NOT USE
 VectorXd batch_mahalanobis_dist2(const MatrixXd& x, const MatrixXd& xs)
 {
-    int numCols = xs.cols();
-    int numRows = xs.rows();
+    // int numCols = xs.cols();
+    // int numRows = xs.rows();
     
-    RowVectorXd xs_mean =  xs.colwise().mean();
-    MatrixXd    x_cen   = (x.rowwise()  - xs_mean);
-    MatrixXd    s       =  cov(xs_cen);
-    MatrixXd    b       =  MatrixXd::Identity(numCols, numCols);
+    // RowVectorXd xs_mean =  xs.colwise().mean();
+    // MatrixXd    x_cen   = (x.rowwise()  - xs_mean);
+    // MatrixXd    s       =  cov(xs_cen);
+    // MatrixXd    b       =  MatrixXd::Identity(numCols, numCols);
     
-    s.ldlt().solveInPlace(b);
+    // s.ldlt().solveInPlace(b);
     
-    x_cen = (x_cen * b).array() * x_cen.array();
+    // x_cen = (x_cen * b).array() * x_cen.array();
     
-    return x_cen.rowwise().sum();
+    // return x_cen.rowwise().sum();
+
+    VectorXd temp;
+    return temp;
 }
 
 
 
 
 // https://towardsdatascience.com/multivariate-outlier-detection-in-python-e946cfc843b3
-MatrixXd prune_outliers(const MatrixXd& x, const int& thresh_pct)
+MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
 {
-    int   df          = x.rows();
-    int   n           = x.cols();
-    float thresh_dist = inf;
+    int   df          = x.rows(); // Degrees of freedom (dimensionality of the data)
+    int   n           = x.cols(); // Num data points
+    float thresh_dist = 100;
 
     if (df == 1)
         thresh_dist = chi2_1df_ppf[thresh_pct];
@@ -385,29 +393,30 @@ MatrixXd prune_outliers(const MatrixXd& x, const int& thresh_pct)
     else if (df == 3)
         thresh_dist = chi2_3df_ppf[thresh_pct];
     
-    Vector2d x_mean    = x.colwise().mean();
-    Matrix2d x_cov     = cov(x);
-    Matrix2d x_inv_cov = x_cov.inverse();
+    Vector2d x_mean = x.rowwise().mean();
+    Matrix2d x_cov  = cov(x);
+    VectorXd dists(n);
 
     int numGood = 0;
 
     for (int i=0; i<n; i++)
     {
-        float dist = single_mahalanobis_dist2(x(all, i), x_mean, x_inv_cov);
+        float dist = single_mahalanobis_dist2(x(all, i), x_mean, x_cov);
+
+        dists(i) = dist;
         
         if (dist <= thresh_dist)
             numGood++;
     }
 
-    MatrixXd out;
-    out.resize(df, numGood);
+    MatrixXd out(df, numGood);
     int k = 0;
 
     for (int i = 0; i < n; i++)
     {
         if (dists(i) <= thresh_dist)
         {
-            out(k) = x(all, i);
+            out(all, k) = x(all, i);
             k++;
         }
     }

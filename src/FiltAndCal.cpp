@@ -1,8 +1,16 @@
 #include "Arduino.h"
 #include "FiltAndCal.h"
 #include "eigen.h"
+#include <Eigen/Cholesky>
 #include <Eigen/LU>
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
+#include <Eigen/Dense>
+
+
+
+
+using namespace Eigen;
 
 
 
@@ -152,7 +160,7 @@ void vectorCal::updateB()
 
 void vectorCal::updateA_inv()
 {
-    MatrixXd centered = dataMat.colwise() - dataMat.rowwise().mean();
+    MatrixXd centered = dataMat.colwise()  - dataMat.rowwise().mean();
     Matrix3d cov      = centered.adjoint() * centered;
     
     setA_inv(sqrtm(cov.inverse()));
