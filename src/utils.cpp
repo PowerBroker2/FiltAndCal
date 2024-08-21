@@ -56,6 +56,28 @@ Matrix3d skew(const Vector3d& w)
 
 
 
+// https://en.wikipedia.org/wiki/Square_root_of_a_matrix
+Matrix3d sqrtm(const Matrix3d& mat)
+{
+    // Find eigenvectors and eigenvalues of mat
+    EigenSolver<Matrix3d> es(mat);
+    Vector3d vals = es.eigenvalues().real();
+    Matrix3d vecs = es.eigenvectors().real();
+
+    Matrix3d sqrtVals;
+    sqrtVals.diagonal() << sqrt(vals(0)),
+                           sqrt(vals(1)),
+                           sqrt(vals(2));
+    
+    Matrix3d sqrtMat;
+    sqrtMat = vecs * sqrtVals * vecs.inverse();
+
+    return sqrtMat;
+}
+
+
+
+
 void printVec2d(const Vector2d& vec,
                 const int&      p,
                 Stream&         stream)

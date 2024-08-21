@@ -32,8 +32,9 @@ struct sensor_cal
 
 
 
+
 // https://teslabs.com/articles/magnetometer-calibration/
-class vectorCal
+class RotVecCal
 {
 public:
     void     begin(const Vector3d& _truthVec,
@@ -74,48 +75,53 @@ protected:
 
 
 
-    void     updateA_inv();
-    void     updateB();
-    Matrix3d sqrtm(const Matrix3d& mat);
+    void updateA_inv();
+    void updateB();
 };
 
 
 
+
 MatrixXd cov(const MatrixXd& mat);
-double single_mahalanobis_dist2(const Vector2d& pt, const Vector2d& mean, const Matrix2d& cov);
+double   single_mahalanobis_dist2(const VectorXd& pt, const VectorXd& mean, const MatrixXd& cov);
 VectorXd batch_mahalanobis_dist2(const MatrixXd& x, const MatrixXd& xs);
 MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct);
-long factorial(const int& n);
+
+
+
+
+long     factorial(const int& n);
 Matrix3d skew(const Vector3d& w);
-void printVec2d(const Vector2d& vec,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printVec3d(const Vector3d& vec,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printVec4d(const Vector4d& vec,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printVecXd(const VectorXd& vec,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printQuatd(const Quaterniond& quat,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printMat3d(const Matrix3d& mat,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printMat4d(const Matrix4d& mat,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-void printMatXd(const MatrixXd& mat,
-                const int&      p      = 5,
-                Stream&         stream = Serial);
-double double_constrain(const double& input,
-                        const double& min,
-                        const double& max);
-double double_map(const double& x,
-                  const double& in_min,
-                  const double& in_max,
-                  const double& out_min,
-                  const double& out_max);
+Matrix3d sqrtm(const Matrix3d& mat);
+void     printVec2d(const Vector2d& vec,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printVec3d(const Vector3d& vec,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printVec4d(const Vector4d& vec,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printVecXd(const VectorXd& vec,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printQuatd(const Quaterniond& quat,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printMat3d(const Matrix3d& mat,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printMat4d(const Matrix4d& mat,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+void     printMatXd(const MatrixXd& mat,
+                    const int&      p      = 5,
+                    Stream&         stream = Serial);
+double   double_constrain(const double& input,
+                          const double& min,
+                          const double& max);
+double   double_map(const double& x,
+                    const double& in_min,
+                    const double& in_max,
+                    const double& out_min,
+                    const double& out_max);

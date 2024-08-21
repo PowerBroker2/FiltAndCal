@@ -344,7 +344,7 @@ MatrixXd cov(const MatrixXd& mat)
 
 
 // https://en.wikipedia.org/wiki/Mahalanobis_distance
-double single_mahalanobis_dist2(const Vector2d& pt, const Vector2d& mean, const Matrix2d& cov)
+double single_mahalanobis_dist2(const VectorXd& pt, const VectorXd& mean, const MatrixXd& cov)
 {
     auto zero_mean_pt = pt - mean;
     return zero_mean_pt.transpose() * cov.inverse() * zero_mean_pt;
@@ -384,7 +384,7 @@ MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
 {
     int   df          = x.rows(); // Degrees of freedom (dimensionality of the data)
     int   n           = x.cols(); // Num data points
-    float thresh_dist = 100;
+    float thresh_dist = 1000;
 
     if (df == 1)
         thresh_dist = chi2_1df_ppf[thresh_pct];
@@ -393,8 +393,8 @@ MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
     else if (df == 3)
         thresh_dist = chi2_3df_ppf[thresh_pct];
     
-    Vector2d x_mean = x.rowwise().mean();
-    Matrix2d x_cov  = cov(x);
+    VectorXd x_mean = x.rowwise().mean();
+    MatrixXd x_cov  = cov(x);
     VectorXd dists(n);
 
     int numGood = 0;
