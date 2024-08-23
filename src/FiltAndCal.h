@@ -80,6 +80,15 @@ protected:
     void updateB();
 };
 
+Vector3d vectorFiltAndCal(const Vector3d&      data,
+                          const sensor_cal&    cal,
+                                bool&          filtInit,
+                                FilterOnePole& x_lpf,
+                                FilterOnePole& y_lpf,
+                                FilterOnePole& z_lpf,
+                                FilterOnePole& x_hpf,
+                                FilterOnePole& y_hpf,
+                                FilterOnePole& z_hpf);
 Vector3d vectorFilt(const Vector3d&      data,
                     const sensor_cal&    cal,
                           bool&          filtInit,
@@ -91,6 +100,11 @@ Vector3d vectorFilt(const Vector3d&      data,
                           FilterOnePole& z_hpf);
 Vector3d vectorCal(const Vector3d&   data,
                    const sensor_cal& cal);
+double doubleFiltAndCal(const double&        data,
+                        const sensor_cal&    cal,
+                              bool&          filtInit,
+                              FilterOnePole& lpf,
+                              FilterOnePole& hpf);
 double doubleFilt(const double&        data,
                   const sensor_cal&    cal,
                         bool&          filtInit,

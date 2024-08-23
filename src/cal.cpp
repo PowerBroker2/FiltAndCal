@@ -153,7 +153,8 @@ bool RotVecCal::insertToDataMat(const Vector3d& col,
 
 void RotVecCal::updateB()
 {
-    b = dataMat.rowwise().mean();
+    dataMat = prune_gaussian_outliers(dataMat, 95);
+    b       = dataMat.rowwise().mean();
 }
 
 
@@ -161,10 +162,9 @@ void RotVecCal::updateB()
 
 void RotVecCal::updateA_inv()
 {
-    MatrixXd centered = dataMat.colwise()  - dataMat.rowwise().mean();
-    Matrix3d cov      = centered.adjoint() * centered;
+    Matrix3d covar = cov(dataMat);
     
-    setA_inv(sqrtm(cov.inverse()));
+    setA_inv(sqrtm(covar.inverse()));
 }
 
 
@@ -172,7 +172,6 @@ void RotVecCal::updateA_inv()
 
 void RotVecCal::findCalParams()
 {
-    dataMat = prune_gaussian_outliers(dataMat, 95);
     updateB();
     updateA_inv();
 }
@@ -191,6 +190,31 @@ Vector3d RotVecCal::calPoint(const Vector3d& point,
 
 
 
+Vector3d vectorFiltAndCal(const Vector3d&      data,
+                          const sensor_cal&    cal,
+                                bool&          filtInit,
+                                FilterOnePole& x_lpf,
+                                FilterOnePole& y_lpf,
+                                FilterOnePole& z_lpf,
+                                FilterOnePole& x_hpf,
+                                FilterOnePole& y_hpf,
+                                FilterOnePole& z_hpf)
+{
+    return vectorCal(vectorFilt(data,
+                                cal,
+                                filtInit,
+                                x_lpf,
+                                y_lpf,
+                                z_lpf,
+                                x_hpf,
+                                y_hpf,
+                                z_hpf),
+                     cal);
+}
+
+
+
+
 Vector3d vectorFilt(const Vector3d&      data,
                     const sensor_cal&    cal,
                           bool&          filtInit,
@@ -201,13 +225,12 @@ Vector3d vectorFilt(const Vector3d&      data,
                           FilterOnePole& y_hpf,
                           FilterOnePole& z_hpf)
 {
-    Vector3d output;
-
     if (!filtInit)
     {
         x_lpf.setToNewValue(data(0));
         y_lpf.setToNewValue(data(1));
         z_lpf.setToNewValue(data(2));
+
         x_hpf.setToNewValue(data(0));
         y_hpf.setToNewValue(data(1));
         z_hpf.setToNewValue(data(2));
@@ -215,23 +238,16 @@ Vector3d vectorFilt(const Vector3d&      data,
         filtInit = true;
     }
 
-    x_lpf.input(data(0));
-    y_lpf.input(data(1));
-    z_lpf.input(data(2));
-
-    output(0) = x_lpf.output();
-    output(1) = y_lpf.output();
-    output(2) = z_lpf.output();
+    Vector3d output;
+    output << x_lpf.input(data(0)),
+              y_lpf.input(data(1)),
+              z_lpf.input(data(2));
 
     if (cal.hpf_cutoff_hz > 0)
     {
-        x_hpf.input(output(0));
-        y_hpf.input(output(1));
-        z_hpf.input(output(2));
-
-        output(0) = x_hpf.output();
-        output(1) = y_hpf.output();
-        output(2) = z_hpf.output();
+        output << x_hpf.input(output(0)),
+                  y_hpf.input(output(1)),
+                  z_hpf.input(output(2));
     }
 
     return output;
@@ -249,14 +265,29 @@ Vector3d vectorCal(const Vector3d&   data,
 
 
 
+double doubleFiltAndCal(const double&        data,
+                        const sensor_cal&    cal,
+                              bool&          filtInit,
+                              FilterOnePole& lpf,
+                              FilterOnePole& hpf)
+{
+    return doubleCal(doubleFilt(data,
+                                cal,
+                                filtInit,
+                                lpf,
+                                hpf),
+                     cal);
+}
+
+
+
+
 double doubleFilt(const double&        data,
                   const sensor_cal&    cal,
                         bool&          filtInit,
                         FilterOnePole& lpf,
                         FilterOnePole& hpf)
 {
-    double output;
-
     if (!filtInit)
     {
         lpf.setToNewValue(data);
@@ -265,14 +296,10 @@ double doubleFilt(const double&        data,
         filtInit = true;
     }
 
-    lpf.input(data);
-    output = lpf.output();
+    double output = lpf.input(data);
 
     if (cal.hpf_cutoff_hz > 0)
-    {
-        hpf.input(output);
-        output = hpf.output();
-    }
+        output = hpf.input(output);
 
     return output;
 }
