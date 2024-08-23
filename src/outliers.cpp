@@ -327,22 +327,6 @@ double chi2_3df_ppf[] = { 0.0,
 
 
 
-// https://stackoverflow.com/a/15142446/9860973
-// Assumes NxM mat where N is degrees of freedom and M is number of datapoints
-MatrixXd cov(const MatrixXd& mat)
-{
-    VectorXd xs_mean = mat.rowwise().mean();
-    xs_mean.transposeInPlace();
-
-    MatrixXd centered = mat.colwise() - xs_mean;
-    MatrixXd covar    = (centered * centered.adjoint()) / double(mat.cols() - 1);
-
-    return covar;
-}
-
-
-
-
 // https://en.wikipedia.org/wiki/Mahalanobis_distance
 double single_mahalanobis_dist2(const VectorXd& pt, const VectorXd& mean, const MatrixXd& cov)
 {

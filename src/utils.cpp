@@ -56,6 +56,22 @@ Matrix3d skew(const Vector3d& w)
 
 
 
+// https://stackoverflow.com/a/15142446/9860973
+// Assumes NxM mat where N is degrees of freedom and M is number of datapoints
+MatrixXd cov(const MatrixXd& mat)
+{
+    VectorXd xs_mean = mat.rowwise().mean();
+    xs_mean.transposeInPlace();
+
+    MatrixXd centered = mat.colwise() - xs_mean;
+    MatrixXd covar    = (centered * centered.adjoint()) / double(mat.cols() - 1);
+
+    return covar;
+}
+
+
+
+
 // https://en.wikipedia.org/wiki/Square_root_of_a_matrix
 Matrix3d sqrtm(const Matrix3d& mat)
 {
