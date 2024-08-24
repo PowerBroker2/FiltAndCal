@@ -1,17 +1,4 @@
-#include "Arduino.h"
 #include "FiltAndCal.h"
-#include "Filters.h"
-#include "eigen.h"
-#include <Eigen/Cholesky>
-#include <Eigen/LU>
-#include <Eigen/Geometry>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Dense>
-
-
-
-
-using namespace Eigen;
 
 
 
@@ -46,6 +33,7 @@ Vector3d RotVecCal::getTruthVec()
 void RotVecCal::setTruthMag(const double& _truthMag)
 {
     truthMag = _truthMag;
+    truthVec = truthVec.normalized() * truthMag;
 }
 
 
@@ -111,8 +99,8 @@ Vector3d RotVecCal::getB()
 
 void RotVecCal::initDataMat(const int& dataCols)
 {
-    numCols = dataCols;
-    dataMat.resize(numRows, numCols);
+    numSamples = dataCols;
+    dataMat.resize(3, numSamples);
 }
 
 
@@ -120,8 +108,8 @@ void RotVecCal::initDataMat(const int& dataCols)
 
 void RotVecCal::setDataMat(const Matrix<double, 3, Dynamic>& _dataMat)
 {
-    numCols = _dataMat.cols();
-    dataMat.reshaped(numRows, numCols);
+    numSamples = _dataMat.cols();
+    dataMat.reshaped(3, numSamples);
     dataMat << _dataMat;
 }
 
@@ -130,7 +118,7 @@ void RotVecCal::setDataMat(const Matrix<double, 3, Dynamic>& _dataMat)
 
 void RotVecCal::clearDataMat()
 {
-    dataMat.resize(numRows, 0);
+    dataMat.resize(3, 0);
 }
 
 
@@ -139,11 +127,61 @@ void RotVecCal::clearDataMat()
 bool RotVecCal::insertToDataMat(const Vector3d& col,
                                 const int&      colNum)
 {
-    if (colNum < numCols)
+    if (colNum == dataMat.cols())
+    {
+        dataMat.resize(3, colNum);
+        numSamples++;
+    }
+
+    if (colNum < dataMat.cols())
     {
         dataMat.col(colNum) = col;
         return true;
     }
+    
+    return false;
+}
+
+
+
+
+void RotVecCal::initQuatMat(const int& dataCols)
+{
+    quatMat.resize(3, dataCols);
+}
+
+
+
+
+void RotVecCal::setQuatMat(const Matrix<double, 4, Dynamic>& _quatMat)
+{
+    quatMat.reshaped(3, _quatMat.cols());
+    quatMat << _quatMat;
+}
+
+
+
+
+void RotVecCal::clearQuatMat()
+{
+    quatMat.resize(4, 0);
+}
+
+
+
+
+bool RotVecCal::insertToQuatMat(const Vector4d& col,
+                                const int&      colNum)
+{
+    if (colNum == quatMat.cols())
+        quatMat.resize(3, colNum);
+
+    if (colNum < quatMat.cols())
+    {
+        quatMat.col(colNum) = col;
+        return true;
+    }
+    
     
     return false;
 }

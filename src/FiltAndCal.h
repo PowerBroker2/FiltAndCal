@@ -55,6 +55,11 @@ public:
     void     clearDataMat();
     bool     insertToDataMat(const Vector3d& col,
                              const int&      colNum);
+    void     initQuatMat(const int& dataCols);
+    void     setQuatMat(const Matrix<double, 4, Dynamic>& _quatMat);
+    void     clearQuatMat();
+    bool     insertToQuatMat(const Vector4d& col,
+                             const int&      colNum);
     void     findCalParams();
     Vector3d calPoint(const Vector3d& point,
                       const bool&     norm = true);
@@ -62,10 +67,10 @@ public:
 
 
 protected:
-    int numRows = 3;
-    int numCols;
+    int numSamples;
 
     Matrix<double, 3, Dynamic> dataMat;
+    Matrix<double, 4, Dynamic> quatMat;
     
     Vector3d truthVec;
     double   truthMag;
