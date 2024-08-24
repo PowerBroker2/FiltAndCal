@@ -1,16 +1,4 @@
-#include "Arduino.h"
 #include "FiltAndCal.h"
-#include "eigen.h"
-#include <Eigen/Cholesky>
-#include <Eigen/LU>
-#include <Eigen/Geometry>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Dense>
-
-
-
-
-using namespace Eigen;
 
 
 

@@ -3,11 +3,6 @@
 
 
 
-using namespace Eigen;
-
-
-
-
 void setup()
 {
   Serial.begin(115200);
