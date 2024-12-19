@@ -35,55 +35,71 @@ struct sensor_cal
 
 
 // https://teslabs.com/articles/magnetometer-calibration/
-class RotVecCal
+class imuCal
 {
 public:
-    void     begin(const Vector3d& _truthVec,
-                   const int&      dataRows = 0);
-    void     setTruthVec(const Vector3d& _truthVec);
-    Vector3d getTruthVec();
-    void     setTruthMag(const double& _truthMag);
-    double   getTruthMag();
-    void     setA(const Matrix3d& _A);
-    void     setA_inv(const Matrix3d& _A_inv);
-    void     setB(const Vector3d& _b);
-    Matrix3d getA();
-    Matrix3d getA_inv();
-    Vector3d getB();
-    void     initDataMat(const int& dataCols);
-    void     setDataMat(const Matrix<double, 3, Dynamic>& _dataMat);
-    void     clearDataMat();
-    bool     insertToDataMat(const Vector3d& col,
-                             const int&      colNum);
-    void     initQuatMat(const int& dataCols);
-    void     setQuatMat(const Matrix<double, 4, Dynamic>& _quatMat);
-    void     clearQuatMat();
-    bool     insertToQuatMat(const Vector4d& col,
-                             const int&      colNum);
-    void     findCalParams();
+    bool     calMagData(const bool& trueRotsGiven = false);
+    void     setMagTruthVec(const Vector3d& _magTruthVec);
+    Vector3d getMagTruthVec();
+    void     setMagTruthMag(const double& _magTruthMag);
+    double   getMagTruthMag();
+    Matrix3d getMagA();
+    Matrix3d getMagA_inv();
+    Vector3d getMagB();
+
+    bool     calAccelData();
+    void     setAccelTruthVec(const Vector3d& _accelTruthVec);
+    Vector3d getAccelTruthVec();
+    void     setAccelTruthMag(const double& _accelTruthMag);
+    double   getAccelTruthMag();
+    Vector3d getAccelB();
+
+    bool     calGryoData();
+    Vector3d getGryoB();
+
+    void     initAccelDataMat(const int& numSamps);
+    void     setAccelDataMat(const Matrix<double, 3, Dynamic>& _accelDataMat);
+    void     clearAccelDataMat();
+    bool     insertToAccelDataMat(const Vector3d& samp,
+                                  const int&      sampNum);
+    
     Vector3d calPoint(const Vector3d& point,
                       const bool&     norm = true);
 
 
 
 protected:
-    int numSamples;
+    int  numSamples;
+    bool calDataReady;
 
-    Matrix<double, 3, Dynamic> dataMat;
-    Matrix<double, 4, Dynamic> quatMat;
+    Matrix<double, 3, Dynamic> accelDataMat;
+    Matrix<double, 3, Dynamic> magDataMat;
+    Matrix<double, 3, Dynamic> gyroDataMat;
+    Matrix<double, 3, Dynamic> rotVecMat;
+    VectorXd                   timestamps;
     
-    Vector3d truthVec;
-    double   truthMag;
+    Vector3d accelTruthVec;
+    double   accelTruthMag;
+    Vector3d magTruthVec;
+    double   magTruthMag;
 
-    Matrix3d A;
-    Matrix3d A_inv;
-    Vector3d b;
+    Matrix3d mag_A;
+    Matrix3d mag_A_inv;
+    Vector3d mag_b;
 
+    Vector3d accel_b;
 
-
-    void updateA_inv();
-    void updateB();
+    Vector3d gyro_b;
 };
+
+
+
+
+double magRotMinFunc(const VectorXd& vec, Matrix<double, 3, Dynamic> magDataMat, Matrix<double, 3, Dynamic> rotVecMat, Vector3d magTruthVec);
+double magScalesMinFunc(const VectorXd& scales);
+
+
+
 
 Vector3d vectorFiltAndCal(const Vector3d&      data,
                           const sensor_cal&    cal,
@@ -124,6 +140,8 @@ double doubleCal(const double&     data,
 MatrixXd cov(const MatrixXd& mat);
 double   single_mahalanobis_dist2(const VectorXd& pt, const VectorXd& mean, const MatrixXd& cov);
 VectorXd batch_mahalanobis_dist2(const MatrixXd& x, const MatrixXd& xs);
+VectorXi outlier_locs(const MatrixXd& x, const int& thresh_pct);
+MatrixXd rm_select_cols(const MatrixXd& x, const VectorXi& cols);
 MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct);
 
 
@@ -131,6 +149,7 @@ MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct);
 
 long     factorial(const int& n);
 Matrix3d skew(const Vector3d& w);
+Matrix3d rotVec_2_dcm(const Vector3d& vec);
 Matrix3d sqrtm(const Matrix3d& mat);
 void     printVec2d(const Vector2d& vec,
                     const int&      p      = 5,

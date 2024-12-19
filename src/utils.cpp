@@ -45,6 +45,25 @@ Matrix3d skew(const Vector3d& w)
 
 
 
+Matrix3d rotVec_2_dcm(const Vector3d& vec)
+{
+    double   theta = vec.norm();
+    Vector3d axis;
+
+    if (theta == 0)
+        axis << 1, 0, 0;
+    else
+        axis = vec / theta;
+
+    AngleAxisd angAxis(theta, axis);
+    Matrix3d   dcm = angAxis.toRotationMatrix();
+
+    return dcm;
+}
+
+
+
+
 // https://stackoverflow.com/a/15142446/9860973
 // Assumes NxM mat where N is degrees of freedom and M is number of datapoints
 MatrixXd cov(const MatrixXd& mat)

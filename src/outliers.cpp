@@ -351,8 +351,7 @@ VectorXd batch_mahalanobis_dist2(const MatrixXd& x, const MatrixXd& xs)
 
 
 
-// https://towardsdatascience.com/multivariate-outlier-detection-in-python-e946cfc843b3
-MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
+VectorXi outlier_locs(const MatrixXd& x, const int& thresh_pct)
 {
     int   df          = x.rows(); // Degrees of freedom (dimensionality of the data)
     int   n           = x.cols(); // Num data points
@@ -381,12 +380,48 @@ MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
             numGood++;
     }
 
-    MatrixXd out(df, numGood);
+    int      numBad = n - numGood;
+    VectorXi out(numBad);
+    int      k = 0;
+
+    for (int i = 0; i < n; i++)
+    {
+        if (dists(i) > thresh_dist)
+        {
+            out(k) = i;
+            k++;
+        }
+    }
+
+    return out;
+}
+
+
+
+
+MatrixXd rm_select_cols(const MatrixXd& x, const VectorXi& cols)
+{
+    int df       = x.rows(); // Degrees of freedom (dimensionality of the data)
+    int n        = x.cols(); // Num data points
+    int num_out  = cols.size();
+
+    MatrixXd out(df, num_out);
     int k = 0;
 
     for (int i = 0; i < n; i++)
     {
-        if (dists(i) <= thresh_dist)
+        bool isOutlier = false;
+
+        for (int j = 0; j < num_out; j++)
+        {
+            if (i == cols(j))
+            {
+                isOutlier = true;
+                break;
+            }
+        }
+
+        if (!isOutlier)
         {
             out(all, k) = x(all, i);
             k++;
@@ -394,4 +429,49 @@ MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
     }
 
     return out;
+}
+
+
+
+
+VectorXd rm_select_cols(const VectorXd& x, const VectorXi& cols)
+{
+    int n        = x.size(); // Num data points
+    int num_out  = cols.size();
+
+    VectorXd out(num_out);
+    int k = 0;
+
+    for (int i = 0; i < n; i++)
+    {
+        bool isOutlier = false;
+
+        for (int j = 0; j < num_out; j++)
+        {
+            if (i == cols(j))
+            {
+                isOutlier = true;
+                break;
+            }
+        }
+
+        if (!isOutlier)
+        {
+            out(k) = x(i);
+            k++;
+        }
+    }
+
+    return out;
+}
+
+
+
+
+// https://towardsdatascience.com/multivariate-outlier-detection-in-python-e946cfc843b3
+MatrixXd prune_gaussian_outliers(const MatrixXd& x, const int& thresh_pct)
+{
+    VectorXi out_idxs = outlier_locs(x, thresh_pct);
+
+    return rm_select_cols(x, out_idxs);
 }
