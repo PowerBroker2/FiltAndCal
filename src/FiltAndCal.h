@@ -1,6 +1,7 @@
 #pragma once
 #include "Arduino.h"
 #include "Filters.h"
+#include "Filt.h"
 #include "eigen.h"
 #include <Eigen/Cholesky>
 #include <Eigen/LU>
@@ -35,6 +36,7 @@ struct sensor_cal
 
 
 // https://teslabs.com/articles/magnetometer-calibration/
+/*
 class imuCal
 {
 public:
@@ -65,6 +67,9 @@ public:
     
     Vector3d calPoint(const Vector3d& point,
                       const bool&     norm = true);
+    
+    double magRotMinFunc(const VectorXd& vec);
+    double magScalesMinFunc(const VectorXd& scales);
 
 
 
@@ -87,16 +92,13 @@ protected:
     Matrix3d mag_A_inv;
     Vector3d mag_b;
 
+    Matrix3d accel_A;
+    Vector3d accel_A_inv;
     Vector3d accel_b;
 
     Vector3d gyro_b;
 };
-
-
-
-
-double magRotMinFunc(const VectorXd& vec, Matrix<double, 3, Dynamic> magDataMat, Matrix<double, 3, Dynamic> rotVecMat, Vector3d magTruthVec);
-double magScalesMinFunc(const VectorXd& scales);
+*/
 
 
 
