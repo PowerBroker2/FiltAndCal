@@ -3,15 +3,17 @@
 
 
 
-const float IN_HZ  = 10;
+const bool TEST_BANDPASS = true;
+
 const float LPF_HZ = 5;
 const float HPF_HZ = 15;
 
 
 
 
-TwoPoleFilt lpf(LPF_HZ, FilterType::LowPass);
-TwoPoleFilt hpf(HPF_HZ, FilterType::HighPass);
+TwoPoleFilt     lpf(LPF_HZ, FilterType::LowPass);
+TwoPoleFilt     hpf(HPF_HZ, FilterType::HighPass);
+TwoPoleBandPass bpf(LPF_HZ, HPF_HZ);
 
 
 
@@ -45,34 +47,23 @@ float sineWave(float freqHz, float amplitude = 1.0f, float offset = 0.0f)
 
 
 /**
- * @brief Generate a falling sawtooth waveform.
- *
- * Produces a sawtooth signal that immediately jumps to 1.0 and then
- * linearly ramps down to 0.0 at the specified frequency. The waveform
- * frequency is independent of loop timing and is calculated using
- * the microsecond timer. Timer rollover is handled automatically.
- *
- * @param freqHz Sawtooth frequency in Hertz.
- * @return Current sawtooth output value in the range [0.0, 1.0].
- *
- * @note This function maintains internal state and should be called
- *       continuously at any rate.
+ * @brief Generate a square wave with bias.
+ * @param freqHz Square wave frequency in Hz
+ * @param amplitude   Peak deviation from bias
+ * @param bias        DC offset added to the waveform
+ * @return Square wave value
  */
-float sawDown(float freqHz)
+float squareWave(float freqHz, float amplitude, float bias)
 {
-    static uint32_t lastMicros = 0;
-    static float phase = 0.0f;
+    if (freqHz <= 0.0f)
+        return bias;
 
-    uint32_t now = micros();
-    float dt = (now - lastMicros) * 1e-6f;  // rollover-safe
-    lastMicros = now;
+    float period_us = 1e6f / freqHz;
+    float t = fmodf((float)micros(), period_us);
 
-    phase += freqHz * dt;
-
-    if (phase >= 1.0f)
-        phase -= 1.0f;
-
-    return 1.0f - phase;
+    return (t < (period_us * 0.5f))
+           ? (bias + amplitude)
+           : (bias - amplitude);
 }
 
 
@@ -82,11 +73,20 @@ void setup()
 {
     Serial.begin(115200);
 
-    Serial.print("in");
-    Serial.print(',');
-    Serial.print("lpf_out");
-    Serial.print(',');
-    Serial.println("hpf_out");
+    if (TEST_BANDPASS)
+    {
+        Serial.print("in");
+        Serial.print(',');
+        Serial.println("bpf_out");
+    }
+    else
+    {
+        Serial.print("in");
+        Serial.print(',');
+        Serial.print("lpf_out");
+        Serial.print(',');
+        Serial.println("hpf_out");
+    }
 }
 
 
@@ -94,16 +94,30 @@ void setup()
 
 void loop()
 {
-    // float in      = sineWave(60, 1, 0);
-    float in      = sawDown(10);
-    float lpf_out = lpf.process(in, micros());
-    float hpf_out = hpf.process(in, micros());
+    if (TEST_BANDPASS)
+    {
+        float in1     = sineWave(2,  1, 0);
+        float in2     = sineWave(10, 1, 0);
+        float in3     = sineWave(100, 1, 0);
+        float in      = in1 + in2 + in3;
+        float bpf_out = bpf.process(in, micros());
 
-    Serial.print(in);
-    Serial.print(',');
-    Serial.print(lpf_out);
-    Serial.print(',');
-    Serial.println(hpf_out);
+        Serial.print(in);
+        Serial.print(',');
+        Serial.println(bpf_out);
+    }
+    else
+    {
+        float in      = squareWave(2, 1, 1);
+        float lpf_out = lpf.process(in, micros());
+        float hpf_out = hpf.process(in, micros());
+
+        Serial.print(in);
+        Serial.print(',');
+        Serial.print(lpf_out);
+        Serial.print(',');
+        Serial.println(hpf_out);
+    }
 
     delay(1);
 }

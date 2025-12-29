@@ -3,13 +3,7 @@
 #include "eigen.h"
 #include <Eigen/Dense>
 
-
-
-
 using namespace Eigen;
-
-
-
 
 /**
  * @class TwoPoleFilt3f
@@ -43,9 +37,6 @@ public:
         reset();
     }
 
-
-
-
     /**
      * @brief Set the filter cutoff frequency.
      * @param hz Cutoff frequency in Hz. Must be >0.
@@ -54,9 +45,6 @@ public:
     {
         cutoffHz = (hz > 0.0f) ? hz : 0.001f;
     }
-
-
-
 
     /**
      * @brief Set the filter type.
@@ -72,9 +60,6 @@ public:
             reset();
         }
     }
-
-
-
 
     /**
      * @brief Process a new Vector3f input sample.
@@ -123,9 +108,6 @@ public:
         return y;
     }
 
-
-
-
     /**
      * @brief Reset the filter internal state.
      *
@@ -138,9 +120,6 @@ public:
 
         initialized = false;
     }
-
-
-
 
 private:
     float cutoffHz;        /**< Filter cutoff frequency in Hz */
@@ -156,9 +135,6 @@ private:
     bool initialized;     /**< True if first sample has been processed */
     float min_dt;         /**< Minimum allowed sample interval (s) */
     float max_dt;         /**< Maximum allowed sample interval (s) */
-
-
-
 
     /**
      * @brief Compute Butterworth filter coefficients for each component using dt.
@@ -199,8 +175,87 @@ private:
     }
 };
 
+/**
+ * @class TwoPoleBandPass3f
+ * @brief Fourth-order band-pass filter for Vector3f inputs using cascaded two-pole filters.
+ *
+ * The filter is implemented as:
+ *     2-pole HPF (lowCutHz) -> 2-pole LPF (highCutHz)
+ *
+ * This design provides steeper roll-off than a one-pole band-pass while
+ * maintaining numerical stability and variable sample interval support.
+ */
+class TwoPoleBandPass3f
+{
+public:
+    /**
+     * @brief Construct a two-pole band-pass filter.
+     * @param lowCutHz  Lower cutoff frequency (HPF cutoff), Hz
+     * @param highCutHz Upper cutoff frequency (LPF cutoff), Hz
+     * @param min_dt    Minimum allowed sample interval (seconds)
+     * @param max_dt    Maximum allowed sample interval (seconds)
+     */
+    explicit TwoPoleBandPass3f(float lowCutHz,
+                               float highCutHz,
+                               float min_dt = 1e-6f,
+                               float max_dt = 0.1f)
+        : hpf(1.0f, FilterType::HighPass, min_dt, max_dt),
+          lpf(1.0f, FilterType::LowPass, min_dt, max_dt)
+    {
+        setCutoffs(lowCutHz, highCutHz);
+    }
 
+    /**
+     * @brief Set band-pass cutoff frequencies.
+     * @param lowCutHz  Lower cutoff frequency (HPF), Hz
+     * @param highCutHz Upper cutoff frequency (LPF), Hz
+     *
+     * If lowCutHz > highCutHz, the values are automatically swapped.
+     * Cutoff values <= 0 effectively bypass the corresponding stage.
+     */
+    void setCutoffs(float lowCutHz, float highCutHz)
+    {
+        // Ensure low <= high
+        if (lowCutHz > highCutHz)
+        {
+            float tmp = lowCutHz;
+            lowCutHz  = highCutHz;
+            highCutHz = tmp;
+        }
 
+        hpf.setCutoff(lowCutHz);
+        lpf.setCutoff(highCutHz);
+
+        reset();
+    }
+
+    /**
+     * @brief Process a new input sample.
+     * @param input Input Vector3f sample
+     * @param nowMicros Timestamp in microseconds
+     * @return Band-pass filtered output as Vector3f
+     */
+    Vector3f process(const Vector3f &input, uint32_t nowMicros)
+    {
+        Vector3f hp = hpf.process(input, nowMicros);
+        return lpf.process(hp, nowMicros);
+    }
+
+    /**
+     * @brief Reset internal filter state.
+     *
+     * Resets both HPF and LPF stages to zero.
+     */
+    void reset()
+    {
+        hpf.reset();
+        lpf.reset();
+    }
+
+private:
+    TwoPoleFilt3f hpf; /**< Two-pole high-pass stage */
+    TwoPoleFilt3f lpf; /**< Two-pole low-pass stage */
+};
 
 /**
  * @class TwoPoleFilt
@@ -236,9 +291,6 @@ public:
         reset();
     }
 
-
-
-
     /**
      * @brief Set the filter cutoff frequency.
      * @param hz New cutoff frequency in Hz. Values <= 0 are clamped to 0.001 Hz.
@@ -249,9 +301,6 @@ public:
     {
         cutoffHz = (hz > 0.0f) ? hz : 0.001f;
     }
-
-
-
 
     /**
      * @brief Set the filter type (LowPass or HighPass).
@@ -267,9 +316,6 @@ public:
             reset();
         }
     }
-
-
-
 
     /**
      * @brief Process a new input sample.
@@ -317,9 +363,6 @@ public:
         return y;
     }
 
-
-
-
     /**
      * @brief Reset the internal filter state.
      *
@@ -333,9 +376,6 @@ public:
 
         initialized = false;
     }
-
-
-
 
 private:
     // Filter settings
@@ -354,9 +394,6 @@ private:
     bool initialized;     /**< True if filter has been initialized */
     float min_dt;         /**< Minimum allowed sample interval (seconds) */
     float max_dt;         /**< Maximum allowed sample interval (seconds) */
-
-
-
 
     /**
      * @brief Compute 2-pole Butterworth filter coefficients for the given dt.
@@ -391,4 +428,84 @@ private:
         a1 = 2.0f * (k2 - 1.0f) * norm;
         a2 = (1.0f - sqrtf(2.0f) * k + k2) * norm;
     }
+};
+
+/**
+ * @class TwoPoleBandPass
+ * @brief Fourth-order band-pass filter using cascaded two-pole Butterworth filters.
+ *
+ * The filter is implemented as:
+ *     2-pole HPF (lowCutHz) -> 2-pole LPF (highCutHz)
+ *
+ * This design provides steeper roll-off than a one-pole band-pass while
+ * maintaining numerical stability and variable sample interval support.
+ */
+class TwoPoleBandPass
+{
+public:
+    /**
+     * @brief Construct a two-pole band-pass filter.
+     * @param lowCutHz  Lower cutoff frequency (HPF cutoff), Hz
+     * @param highCutHz Upper cutoff frequency (LPF cutoff), Hz
+     * @param min_dt    Minimum allowed sample interval (seconds)
+     * @param max_dt    Maximum allowed sample interval (seconds)
+     */
+    explicit TwoPoleBandPass(float lowCutHz,
+                             float highCutHz,
+                             float min_dt = 1e-6f,
+                             float max_dt = 0.1f)
+        : hpf(1.0f, FilterType::HighPass, min_dt, max_dt),
+          lpf(1.0f, FilterType::LowPass,  min_dt, max_dt)
+    {
+        setCutoffs(lowCutHz, highCutHz);
+    }
+
+    /**
+     * @brief Set band-pass cutoff frequencies.
+     * @param lowCutHz  Lower cutoff frequency (HPF), Hz
+     * @param highCutHz Upper cutoff frequency (LPF), Hz
+     *
+     * If lowCutHz > highCutHz, the values are automatically swapped.
+     * Cutoff values <= 0 effectively bypass the corresponding stage.
+     */
+    void setCutoffs(float lowCutHz, float highCutHz)
+    {
+        /* Ensure valid ordering */
+        if (lowCutHz > highCutHz)
+        {
+            float tmp = lowCutHz;
+            lowCutHz  = highCutHz;
+            highCutHz = tmp;
+        }
+
+        hpf.setCutoff(lowCutHz);
+        lpf.setCutoff(highCutHz);
+
+        reset();
+    }
+
+    /**
+     * @brief Process a new input sample.
+     * @param input Input sample
+     * @param nowMicros Timestamp in microseconds
+     * @return Band-pass filtered output
+     */
+    float process(float input, uint32_t nowMicros)
+    {
+        float hp = hpf.process(input, nowMicros);
+        return lpf.process(hp, nowMicros);
+    }
+
+    /**
+     * @brief Reset internal filter state.
+     */
+    void reset()
+    {
+        hpf.reset();
+        lpf.reset();
+    }
+
+private:
+    TwoPoleFilt hpf; /**< 2-pole high-pass stage */
+    TwoPoleFilt lpf; /**< 2-pole low-pass stage */
 };

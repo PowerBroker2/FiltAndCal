@@ -3,13 +3,7 @@
 #include "eigen.h"
 #include <Eigen/Dense>
 
-
-
-
 using namespace Eigen;
-
-
-
 
 /**
  * @class OnePoleFilt3f
@@ -44,9 +38,6 @@ public:
         setCutoff(cutoffHz);
     }
 
-
-
-
     /**
      * @brief Set the filter type (LowPass or HighPass).
      * @param newType New filter type.
@@ -71,9 +62,6 @@ public:
         }
     }
 
-
-
-
     /**
      * @brief Set the filter cutoff frequency.
      * @param cutoffHz Cutoff frequency in Hz. Must be > 0 for normal operation.
@@ -87,9 +75,6 @@ public:
         else
             tau = 1.0f / (2.0f * F_PI * cutoffHz);
     }
-
-
-
 
     /**
      * @brief Set the allowed range of sample intervals.
@@ -109,9 +94,6 @@ public:
         }
         return false;
     }
-
-
-
 
     /**
      * @brief Process a new Vector3f input sample and compute filtered output.
@@ -164,9 +146,6 @@ public:
         return y;
     }
 
-
-
-
     /**
      * @brief Reset the filter internal state.
      * @param value Optional initial state vector. Defaults to zero vector.
@@ -185,9 +164,6 @@ public:
         initialized = false;
     }
 
-
-
-
 private:
     float tau;                   /**< Filter time constant in seconds */
     Vector3f y;                  /**< Filter output/internal state */
@@ -200,8 +176,95 @@ private:
     float max_dt;                /**< Maximum allowed sample interval (s) */
 };
 
+/**
+ * @class OnePoleBandPass3f
+ * @brief First-order band-pass filter for Vector3f inputs using cascaded one-pole filters.
+ *
+ * The filter is implemented as:
+ *     HPF(lowCutHz) -> LPF(highCutHz)
+ *
+ * Each vector component (x, y, z) is filtered independently.
+ * Internally composes two OnePoleFilt3f instances to support:
+ * - Variable sample intervals
+ * - Safe handling of timer rollover
+ */
+class OnePoleBandPass3f
+{
+public:
+    /**
+     * @brief Construct a Vector3f band-pass filter.
+     * @param lowCutHz  Lower cutoff frequency (HPF cutoff), Hz
+     * @param highCutHz Upper cutoff frequency (LPF cutoff), Hz
+     * @param min_dt    Minimum allowed sample interval (seconds)
+     * @param max_dt    Maximum allowed sample interval (seconds)
+     */
+    explicit OnePoleBandPass3f(float lowCutHz,
+                               float highCutHz,
+                               float min_dt = 1e-6f,
+                               float max_dt = 0.1f)
+        : hpf(1.0f, FilterType::HighPass, min_dt, max_dt),
+          lpf(1.0f, FilterType::LowPass,  min_dt, max_dt)
+    {
+        setCutoffs(lowCutHz, highCutHz);
+    }
 
+    /**
+     * @brief Set band-pass cutoff frequencies.
+     * @param lowCutHz  Lower cutoff frequency (HPF), Hz
+     * @param highCutHz Upper cutoff frequency (LPF), Hz
+     *
+     * If lowCutHz > highCutHz, the values are automatically swapped.
+     * Cutoff values <= 0 effectively disable the corresponding stage.
+     * Changing cutoffs resets the internal filter state.
+     */
+    void setCutoffs(float lowCutHz, float highCutHz)
+    {
+        /* Ensure proper ordering */
+        if (lowCutHz > highCutHz)
+        {
+            float tmp = lowCutHz;
+            lowCutHz  = highCutHz;
+            highCutHz = tmp;
+        }
 
+        hpf.setCutoff(lowCutHz);
+        lpf.setCutoff(highCutHz);
+
+        reset();
+    }
+
+    /**
+     * @brief Process a new Vector3f input sample.
+     * @param input Vector3f input sample
+     * @param nowMicros Current timestamp in microseconds
+     * @return Band-pass filtered Vector3f output
+     *
+     * The same timestamp is passed to both internal filters.
+     * Internally performs:
+     *     output = LPF( HPF(input) )
+     */
+    Vector3f process(const Vector3f &input, uint32_t nowMicros)
+    {
+        Vector3f hp = hpf.process(input, nowMicros);
+        return lpf.process(hp, nowMicros);
+    }
+
+    /**
+     * @brief Reset internal filter state.
+     *
+     * Clears internal state of both HPF and LPF stages.
+     * Output will restart from zero on the next processed sample.
+     */
+    void reset()
+    {
+        hpf.reset(Vector3f::Zero());
+        lpf.reset(Vector3f::Zero());
+    }
+
+private:
+    OnePoleFilt3f hpf; /**< High-pass filter stage */
+    OnePoleFilt3f lpf; /**< Low-pass filter stage */
+};
 
 /**
  * @class OnePoleFilt
@@ -371,4 +434,84 @@ private:
     bool initialized;    /**< True if first sample has been processed */
     float min_dt;        /**< Minimum allowed sample interval (s) */
     float max_dt;        /**< Maximum allowed sample interval (s) */
+};
+
+/**
+ * @class OnePoleBandPass
+ * @brief First-order band-pass filter using cascaded one-pole HPF and LPF.
+ *
+ * The filter is implemented as:
+ *     HPF(lowCutHz) -> LPF(highCutHz)
+ *
+ * Supports variable sample intervals and timer rollover via internal
+ * OnePoleFilt instances.
+ */
+class OnePoleBandPass
+{
+public:
+    /**
+     * @brief Construct a band-pass filter.
+     * @param lowCutHz  Lower cutoff frequency (HPF cutoff), Hz
+     * @param highCutHz Upper cutoff frequency (LPF cutoff), Hz
+     * @param min_dt    Minimum allowed sample interval (s)
+     * @param max_dt    Maximum allowed sample interval (s)
+     */
+    explicit OnePoleBandPass(float lowCutHz,
+                             float highCutHz,
+                             float min_dt = 1e-6f,
+                             float max_dt = 0.1f)
+        : hpf(1.0f, FilterType::HighPass, min_dt, max_dt),
+          lpf(1.0f, FilterType::LowPass,  min_dt, max_dt)
+    {
+        setCutoffs(lowCutHz, highCutHz);
+    }
+
+    /**
+     * @brief Set band-pass cutoff frequencies.
+     * @param lowCutHz  Lower cutoff frequency (HPF), Hz
+     * @param highCutHz Upper cutoff frequency (LPF), Hz
+     *
+     * If lowCutHz > highCutHz, the values are automatically swapped.
+     * Cutoff values <= 0 effectively bypass the corresponding stage.
+     */
+    void setCutoffs(float lowCutHz, float highCutHz)
+    {
+        /* Auto-correct ordering */
+        if (lowCutHz > highCutHz)
+        {
+            float tmp = lowCutHz;
+            lowCutHz  = highCutHz;
+            highCutHz = tmp;
+        }
+
+        hpf.setCutoff(lowCutHz);
+        lpf.setCutoff(highCutHz);
+
+        reset();
+    }
+
+    /**
+     * @brief Process a new input sample.
+     * @param input Input sample
+     * @param nowMicros Timestamp in microseconds
+     * @return Band-pass filtered output
+     */
+    float process(float input, uint32_t nowMicros)
+    {
+        float hp = hpf.process(input, nowMicros);
+        return lpf.process(hp, nowMicros);
+    }
+
+    /**
+     * @brief Reset internal filter state.
+     */
+    void reset()
+    {
+        hpf.reset(0.0f);
+        lpf.reset(0.0f);
+    }
+
+private:
+    OnePoleFilt hpf; /**< High-pass stage */
+    OnePoleFilt lpf; /**< Low-pass stage */
 };
