@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include "Utils.h"
 #include "SOSFilt.h"
+#include "ButterworthFilt.h"
 #include "Sensor.h"
 #include "EigenHelpers.h"
 #include "ArduHelpers.h"
