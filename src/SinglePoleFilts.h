@@ -1,5 +1,6 @@
 #pragma once
 #include "Arduino.h"
+#include "ArduHelpers.h"
 #include "eigen.h"
 #include <Eigen/Dense>
 
