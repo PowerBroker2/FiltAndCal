@@ -1,8 +1,7 @@
 #pragma once
 #include "Arduino.h"
 #include "Utils.h"
-#include "SinglePoleFilts.h"
-#include "DoublePoleFilts.h"
+#include "SOSFilt.h"
 #include "Sensor.h"
 #include "EigenHelpers.h"
 #include "ArduHelpers.h"
@@ -323,8 +322,8 @@ double chi2_3df_ppf[] = { 0.0,
 
 inline VectorXi outlier_locs(const MatrixXf& x, const int& thresh_pct)
 {
-    int   df          = x.rows(); // Degrees of freedom (dimensionality of the data)
-    int   n           = x.cols(); // Num data points
+    int   df           = x.rows(); // Degrees of freedom (dimensionality of the data)
+    int   n            = x.cols(); // Num data points
     double thresh_dist = 1000;
 
     if (df == 1)
