@@ -36,9 +36,9 @@ void setup() {
     Serial.print(',');
     Serial.println("sos_out");
 
-    lpFilt.configureLPF(2, fs, 5.0f);       // 2nd-order LPF, 5 Hz cutoff
-    hpFilt.configureHPF(2, fs, 50.0f);      // 2nd-order HPF, 50 Hz cutoff
-    bpFilt.configureBPF(2, fs, 20.0f, 40.0f); // 2nd-order BPF, 20-40 Hz
+    lpFilt.configureLPF(2, fs, 5.0);        // 2nd-order LPF, 5 Hz cutoff
+    hpFilt.configureHPF(2, fs, 50.0);       // 2nd-order HPF, 50 Hz cutoff
+    bpFilt.configureBPF(2, fs, 20.0, 40.0); // 2nd-order BPF, 20-40 Hz
 }
 
 float sineWave(float freqHz, float amplitude = 1.0f)
