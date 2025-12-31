@@ -2,6 +2,13 @@
 #include <Arduino.h>
 #include "SOSFilt.h"
 
+enum ButterworthFilterType
+{
+    LPF,
+    BPF,
+    HPF
+};
+
 /**
  * @brief Design a 2nd-order Butterworth low-pass filter stage
  * @param coeffs Reference to SOSCoefficients struct
@@ -9,7 +16,10 @@
  * @param fs Sampling frequency in Hz
  * @param fc Low-pass cutoff frequency in Hz
  */
-void designButterworthLPF(SOSCoefficients& coeffs, int numStages, float fs, float fc)
+void designButterworthLPF(SOSCoefficients& coeffs,
+                          unsigned int     numStages,
+                          float            fs,
+                          float            fc)
 {
     if (numStages > MAX_SOS_STAGES) numStages = MAX_SOS_STAGES;
     coeffs.stages = numStages;
@@ -17,13 +27,13 @@ void designButterworthLPF(SOSCoefficients& coeffs, int numStages, float fs, floa
     float K = tanf(M_PI * fc / fs);
 
     float norm = 1.0f / (1.0f + sqrtf(2.0f) * K + K * K);
-    float b0 = K * K * norm;
-    float b1 = 2.0f * b0;
-    float b2 = b0;
-    float a1 = 2.0f * (K * K - 1.0f) * norm;
-    float a2 = (1.0f - sqrtf(2.0f) * K + K * K) * norm;
+    float b0   = K * K * norm;
+    float b1   = 2.0f * b0;
+    float b2   = b0;
+    float a1   = 2.0f * (K * K - 1.0f) * norm;
+    float a2   = (1.0f - sqrtf(2.0f) * K + K * K) * norm;
 
-    for (int i = 0; i < numStages; i++) {
+    for (unsigned int i = 0; i < numStages; i++) {
         coeffs.b0[i] = b0;
         coeffs.b1[i] = b1;
         coeffs.b2[i] = b2;
@@ -39,7 +49,10 @@ void designButterworthLPF(SOSCoefficients& coeffs, int numStages, float fs, floa
  * @param fs Sampling frequency in Hz
  * @param fc High-pass cutoff frequency in Hz
  */
-void designButterworthHPF(SOSCoefficients& coeffs, int numStages, float fs, float fc)
+void designButterworthHPF(SOSCoefficients& coeffs,
+                         unsigned int      numStages,
+                         float             fs,
+                         float             fc)
 {
     if (numStages > MAX_SOS_STAGES) numStages = MAX_SOS_STAGES;
     coeffs.stages = numStages;
@@ -47,13 +60,13 @@ void designButterworthHPF(SOSCoefficients& coeffs, int numStages, float fs, floa
     float K = tanf(M_PI * fc / fs);
 
     float norm = 1.0f / (1.0f + sqrtf(2.0f) * K + K * K);
-    float b0 = 1.0f * norm;
-    float b1 = -2.0f * norm;
-    float b2 = 1.0f * norm;
-    float a1 = 2.0f * (K * K - 1.0f) * norm;
-    float a2 = (1.0f - sqrtf(2.0f) * K + K * K) * norm;
+    float b0   = 1.0f * norm;
+    float b1   = -2.0f * norm;
+    float b2   = 1.0f * norm;
+    float a1   = 2.0f * (K * K - 1.0f) * norm;
+    float a2   = (1.0f - sqrtf(2.0f) * K + K * K) * norm;
 
-    for (int i = 0; i < numStages; i++) {
+    for (unsigned int i = 0; i < numStages; i++) {
         coeffs.b0[i] = b0;
         coeffs.b1[i] = b1;
         coeffs.b2[i] = b2;
@@ -70,7 +83,11 @@ void designButterworthHPF(SOSCoefficients& coeffs, int numStages, float fs, floa
  * @param f1 Lower cutoff frequency in Hz
  * @param f2 Upper cutoff frequency in Hz
  */
-void designButterworthBPF(SOSCoefficients& coeffs, int numStages, float fs, float f1, float f2)
+void designButterworthBPF(SOSCoefficients& coeffs,
+                          unsigned int     numStages,
+                          float            fs,
+                          float            f1,
+                          float            f2)
 {
     if (numStages > MAX_SOS_STAGES) numStages = MAX_SOS_STAGES;
     coeffs.stages = numStages;
@@ -81,13 +98,13 @@ void designButterworthBPF(SOSCoefficients& coeffs, int numStages, float fs, floa
     float W0 = sqrtf(w1 * w2);  // Center frequency using geometric mean
 
     float norm = 1.0f / (1.0f + Bw * W0 + W0 * W0);
-    float b0 = Bw * norm;
-    float b1 = 0.0f;
-    float b2 = -Bw * norm;
-    float a1 = 2.0f * (W0 * W0 - 1.0f) * norm;
-    float a2 = (1.0f - Bw * W0 + W0 * W0) * norm;
+    float b0   = Bw * norm;
+    float b1   = 0.0f;
+    float b2   = -Bw * norm;
+    float a1   = 2.0f * (W0 * W0 - 1.0f) * norm;
+    float a2   = (1.0f - Bw * W0 + W0 * W0) * norm;
 
-    for (int i = 0; i < numStages; i++) {
+    for (unsigned int i = 0; i < numStages; i++) {
         coeffs.b0[i] = b0;
         coeffs.b1[i] = b1;
         coeffs.b2[i] = b2;
@@ -100,7 +117,8 @@ void designButterworthBPF(SOSCoefficients& coeffs, int numStages, float fs, floa
  * @class ButterworthFilter
  * @brief Generic Butterworth filter wrapper combining SOSFilter and SOSCoefficients
  */
-class ButterworthFilter {
+class ButterworthFilter
+{
 public:
     /**
      * @brief Default constructor
@@ -113,9 +131,11 @@ public:
      * @param fs Sampling frequency in Hz
      * @param fc Cutoff frequency in Hz
      */
-    void configureLPF(int order, float fs, float fc)
+    void configureLPF(unsigned int order,
+                      float        fs,
+                      float        fc)
     {
-        int stages = (order + 1) / 2;  // Each SOS stage has 2 poles
+        unsigned int stages = (order + 1) / 2;  // Each SOS stage has 2 poles
         designButterworthLPF(coeffs, stages, fs, fc);
         filt.begin(coeffs);
     }
@@ -126,9 +146,11 @@ public:
      * @param fs Sampling frequency in Hz
      * @param fc Cutoff frequency in Hz
      */
-    void configureHPF(int order, float fs, float fc)
+    void configureHPF(unsigned int order,
+                      float        fs,
+                      float        fc)
     {
-        int stages = (order + 1) / 2;
+        unsigned int stages = (order + 1) / 2;
         designButterworthHPF(coeffs, stages, fs, fc);
         filt.begin(coeffs);
     }
@@ -140,9 +162,12 @@ public:
      * @param f1 Lower cutoff frequency in Hz
      * @param f2 Upper cutoff frequency in Hz
      */
-    void configureBPF(int order, float fs, float f1, float f2)
+    void configureBPF(unsigned int order,
+                      float        fs,
+                      float        f1,
+                      float        f2)
     {
-        int stages = (order + 1) / 2;
+        unsigned int stages = (order + 1) / 2;
         designButterworthBPF(coeffs, stages, fs, f1, f2);
         filt.begin(coeffs);
     }
@@ -166,6 +191,6 @@ public:
     }
 
 private:
-    SOSCoefficients coeffs;  ///< Internal SOS coefficient struct
-    SOSFilter filt;          ///< Internal SOS filter object
+    SOSCoefficients coeffs; ///< Internal SOS coefficient struct
+    SOSFilter       filt;   ///< Internal SOS filter object
 };
