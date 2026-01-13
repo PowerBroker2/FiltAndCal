@@ -77,7 +77,7 @@ public:
      *
      * @param procConfig Configuration parameters for scalar processing.
      */
-    void begin(const ProcessingConfigScalar& procConfig)
+    void begin(const ProcessingConfigScalar& procConfig = {})
     {
         config = procConfig;
 
@@ -157,7 +157,7 @@ public:
      *
      * @param procConfig Configuration parameters for vector processing.
      */
-    void begin(const ProcessingConfigVector& procConfig)
+    void begin(const ProcessingConfigVector& procConfig = {})
     {
         config = procConfig;
 
